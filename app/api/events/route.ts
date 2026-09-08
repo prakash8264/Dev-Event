@@ -4,6 +4,12 @@ import { v2 as cloudinary } from 'cloudinary';
 import connectDB from "@/lib/mongodb";
 import Event from '@/database/event.model';
 
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 export async function POST(req: NextRequest) {
     try {
         await connectDB();
@@ -59,6 +65,9 @@ export async function GET() {
 
         return NextResponse.json({ message: 'Events fetched successfully', events }, { status: 200 });
     } catch (e) {
-        return NextResponse.json({ message: 'Event fetching failed', error: e }, { status: 500 });
+        return NextResponse.json(
+            { message: 'Event fetching failed', error: e instanceof Error ? e.message : 'Unknown error' },
+            { status: 500 }
+        );
     }
 }

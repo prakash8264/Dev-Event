@@ -12,8 +12,28 @@ declare global {
   var mongoose: MongooseCache | undefined;
 }
 
-const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_URI = process.env.MONGODB_URL;
 
+function normalizeMongoUri(uri: string): string {
+  const schemeEnd = uri.indexOf('://');
+  const hostStart = uri.lastIndexOf('@');
+
+  if (schemeEnd === -1 || hostStart === -1) {
+    return uri;
+  }
+
+  const credentials = uri.slice(schemeEnd + 3, hostStart);
+  const separator = credentials.indexOf(':');
+
+  if (separator === -1) {
+    return uri;
+  }
+
+  const username = credentials.slice(0, separator);
+  const password = credentials.slice(separator + 1);
+
+  return `${uri.slice(0, schemeEnd + 3)}${username}:${encodeURIComponent(password)}${uri.slice(hostStart)}`;
+}
 
 // Initialize the cache on the global object to persist across hot reloads in development
 let cached: MongooseCache = global.mongoose || { conn: null, promise: null };
@@ -46,7 +66,7 @@ async function connectDB(): Promise<typeof mongoose> {
     };
 
     // Create a new connection promise
-    cached.promise = mongoose.connect(MONGODB_URI!, options).then((mongoose) => {
+    cached.promise = mongoose.connect(normalizeMongoUri(MONGODB_URI), options).then((mongoose) => {
       return mongoose;
     });
   }
